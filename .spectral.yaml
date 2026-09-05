@@ -1,0 +1,7 @@
+extends: spectral:oas
+
+rules:
+  info-contact: off          # this is documentation, not a contact-bearing service
+  info-license: off          # license is documented in README + LICENSE
+  oas3-api-servers: warn     # tolerate specs without servers in forks
+  operation-tagged: off      # tags add noise for a five-endpoint API

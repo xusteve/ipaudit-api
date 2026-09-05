@@ -1,0 +1,19 @@
+name: Validate OpenAPI spec
+
+on:
+  push:
+    paths: ["openapi.yaml", ".github/workflows/validate-spec.yml"]
+  pull_request:
+    paths: ["openapi.yaml"]
+
+jobs:
+  spectral:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Spectral lint
+        uses: stoplightio/spectral-action@latest
+        with:
+          file_glob: openapi.yaml
+          ruleset: .spectral.yaml
+          fail_on: error

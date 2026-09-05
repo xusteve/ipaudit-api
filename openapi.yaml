@@ -1,0 +1,380 @@
+openapi: 3.1.0
+info:
+  title: IPAudit API
+  summary: Free, keyless IP trust-score API
+  description: >-
+    Multi-source IP intelligence: send an IP address and receive a trust score,
+    risk signals (VPN / proxy / Tor / hosting / bot), data confidence and a
+    per-source breakdown. The same intelligence that powers
+    [ipaudit.dev](https://ipaudit.dev).
+  version: 1.0.0
+  termsOfService: https://ipaudit.dev/terms
+  license:
+    name: CC BY 4.0
+    url: https://creativecommons.org/licenses/by/4.0/
+externalDocs:
+  description: Full documentation
+  url: https://github.com/xusteve/ipaudit-api
+servers:
+  - url: https://ipaudit.dev
+    description: Production
+paths:
+  /api/analyze:
+    get:
+      summary: Audit an IP address
+      description: >-
+        Full multi-source audit. Rate-limited to 1,000 audits per client IP per
+        day (shared with the web tool). Repeated audits of the same IP are
+        served from a one-hour cache.
+      operationId: analyzeIp
+      parameters:
+        - name: ip
+          in: query
+          required: true
+          description: IPv4 or IPv6 address to audit.
+          schema:
+            type: string
+          examples:
+            dns:
+              value: 8.8.8.8
+              summary: Google Public DNS (IPv4)
+            ipv6:
+              value: 2606:4700:4700::1111
+              summary: Cloudflare DNS (IPv6)
+        - name: mode
+          in: query
+          required: false
+          description: >-
+            `remote` (default) audits the given address; `self` audits the
+            caller's own address (the `ip` parameter is then informational and
+            must still be a valid IP).
+          schema:
+            type: string
+            enum: [remote, self]
+            default: remote
+      responses:
+        '200':
+          description: Audit result (may contain per-source error rows).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IpEnvelope'
+              examples:
+                googleDns:
+                  summary: 8.8.8.8 (abridged)
+                  value:
+                    ip: 8.8.8.8
+                    mode: remote
+                    queryType: ipv4
+                    country: United States
+                    countryCode: US
+                    region: California
+                    city: Mountain View
+                    asn: '15169'
+                    asnOrg: Google LLC
+                    latitude: 37.386
+                    longitude: -122.084
+                    sources: [ipinfo, db-ip, ip2location, ip-api, maxmind, doh, abuseipdb]
+                    reverseDns: dns.google
+                    threatInfo: { score: 0 }
+                    raw: { proxy: false, hosting: true, bot: false, geoAnomaly: false, contradictions: 0 }
+                    score:
+                      score: 90
+                      grade: high
+                      signals:
+                        - { key: vpn, verdict: consistent }
+                        - { key: hosting, verdict: conflict }
+                    confidence: { score: 88, grade: high, healthySources: 7, totalSources: 8, contradictions: 0 }
+                    perSource:
+                      - id: ipwho.is
+                        name: ipwho.is
+                        contributed: false
+                        status: error
+                        errorDetail: HTTP 429
+                        rateLimited: true
+                        signals: {}
+                        conflict: { country: false, asn: false }
+                      - id: ipinfo
+                        name: IPinfo
+                        contributed: true
+                        status: ok
+                        country: United States
+                        asn: '15169'
+                        signals: {}
+                        conflict: { country: false, asn: false }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/ip:
+    get:
+      summary: Get the caller's own IP
+      description: Lightweight endpoint echoing the client address Cloudflare saw.
+      operationId: getMyIp
+      responses:
+        '200':
+          description: Caller IP info.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ip:
+                    type: string
+                    description: The caller's IP address.
+                  mode:
+                    type: string
+                    const: self
+                  cf:
+                    type: boolean
+                    description: Whether the request reached us through Cloudflare (request.cf available).
+              example: { ip: 203.0.113.7, mode: self, cf: true }
+  /api/badge/{ip}.svg:
+    get:
+      summary: Embeddable trust-score badge
+      description: >-
+        SVG badge for READMEs and websites. Cache hits are free; a cache miss
+        consumes the caller's daily quota.
+      operationId: getBadge
+      parameters:
+        - $ref: '#/components/parameters/IpPath'
+        - name: theme
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [light, dark]
+            default: light
+      responses:
+        '200':
+          description: SVG badge.
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /api/share/{ip}:
+    get:
+      summary: Shareable result card
+      description: SVG card showing the audit summary, for links and embeds.
+      operationId: getShareCard
+      parameters:
+        - $ref: '#/components/parameters/IpPath'
+      responses:
+        '200':
+          description: SVG card.
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /og/ip/{ip}:
+    get:
+      summary: Social preview card
+      description: PNG Open Graph image used by social networks when an audit page is shared.
+      operationId: getOgImage
+      parameters:
+        - $ref: '#/components/parameters/IpPath'
+      responses:
+        '200':
+          description: PNG image.
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+components:
+  parameters:
+    IpPath:
+      name: ip
+      in: path
+      required: true
+      description: IPv4 or IPv6 address (may include the `.svg` suffix on badge endpoints).
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Missing or invalid IP.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example: { error: missing or invalid ip }
+    RateLimited:
+      description: Daily quota exhausted (resets at UTC midnight).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example: { error: rate limit exceeded, limit: 1000 }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        limit:
+          type: integer
+          description: Present on 429 responses — the daily audit limit.
+    Grade:
+      type: string
+      description: Trust band. `high` ≥ 80, `medium` ≥ 60, `low` ≥ 40, `suspicious` below.
+      enum: [high, medium, low, suspicious]
+    SignalKey:
+      type: string
+      enum: [vpn, proxy, tor, hosting, bot, threat, geo]
+    SourceResult:
+      type: object
+      description: One row per upstream data source.
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        contributed:
+          type: boolean
+          description: Whether this source answered and fed the aggregate.
+        status:
+          type: string
+          enum: [ok, error]
+        errorDetail:
+          type: string
+          description: Present when status is `error`.
+        rateLimited:
+          type: boolean
+          description: True when the upstream rate-limited us (transient).
+        country:
+          type: string
+        countryCode:
+          type: string
+        region:
+          type: string
+        city:
+          type: string
+        asn:
+          type: string
+        asnOrg:
+          type: string
+        signals:
+          type: object
+          description: Boolean risk flags observed by this source (absent means not observed / false).
+          additionalProperties:
+            type: boolean
+        conflict:
+          type: object
+          properties:
+            country:
+              type: boolean
+            asn:
+              type: boolean
+    IpEnvelope:
+      type: object
+      properties:
+        ip:
+          type: string
+        mode:
+          type: string
+          enum: [remote, self]
+        queryType:
+          type: string
+          enum: [ipv4, ipv6]
+        country:
+          type: string
+        countryCode:
+          type: string
+        region:
+          type: string
+        city:
+          type: string
+        asn:
+          type: string
+        asnOrg:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        sources:
+          type: array
+          description: IDs of sources consulted for this audit.
+          items:
+            type: string
+        reverseDns:
+          type: [string, 'null']
+          description: Reverse DNS (PTR) hostname, when one exists.
+        threatInfo:
+          type: object
+          properties:
+            score:
+              type: integer
+              description: AbuseIPDB abuse-confidence score, 0 (clean) to 100.
+        raw:
+          type: object
+          description: Boolean risk flags aggregated across sources. A flag that is false may be omitted — always treat missing as false.
+          properties:
+            vpn:
+              type: boolean
+            proxy:
+              type: boolean
+            tor:
+              type: boolean
+            hosting:
+              type: boolean
+            bot:
+              type: boolean
+            threat:
+              type: boolean
+            geoAnomaly:
+              type: boolean
+            contradictions:
+              type: integer
+              description: Number of sources whose country/ASN view disagrees with the majority.
+        score:
+          type: object
+          properties:
+            score:
+              type: integer
+              minimum: 0
+              maximum: 100
+            grade:
+              $ref: '#/components/schemas/Grade'
+            signals:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    $ref: '#/components/schemas/SignalKey'
+                  verdict:
+                    type: string
+                    enum: [consistent, conflict, unknown]
+        confidence:
+          type: object
+          description: How much to trust this audit itself.
+          properties:
+            score:
+              type: integer
+              minimum: 0
+              maximum: 100
+            grade:
+              $ref: '#/components/schemas/Grade'
+            healthySources:
+              type: integer
+            totalSources:
+              type: integer
+            contradictions:
+              type: integer
+        perSource:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceResult'
