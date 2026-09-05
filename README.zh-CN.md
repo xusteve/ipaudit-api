@@ -17,8 +17,9 @@ curl "https://ipaudit.dev/api/analyze?ip=8.8.8.8"
 ```json
 {
   "ip": "8.8.8.8",
-  "score": { "score": 90, "grade": "high", "signals": [ ... ] },
-  "confidence": { "score": 88, "grade": "high", "healthySources": 7, "totalSources": 8 },
+  "score": { "score": 95, "grade": "high",
+             "signals": [ { "key": "hosting", "verdict": "disputed", "hits": 1, "healthy": 7, "deduct": 5 }, ... ] },
+  "confidence": { "score": 100, "grade": "high", "healthySources": 7, "totalSources": 7 },
   "perSource": [ ... ]
 }
 ```
@@ -68,9 +69,13 @@ curl "https://ipaudit.dev/api/analyze?ip=8.8.8.8"
 
 更多片段见 [examples/github-badge.md](examples/github-badge.md)。
 
+## 评分机制
+
+评分按**共识加权**：所有有效数据源一致认定的风险信号全额扣分；仅少数数据源认定的信号**减半扣分（上限 20 分）**，并以 `verdict: "disputed"` 及票数（`hits`/`healthy`）呈现。单一数据源的误判不可能把一个 IP 归零——完整规则见 [docs/scoring.md](docs/scoring.md)。
+
 ## 数据源与署名
 
-结果聚合并交叉比对来自 ipwho.is、IPinfo、DB-IP、IP2Location、ip-api.com、MaxMind GeoLite2、Google DNS(DoH 反向 DNS)与 AbuseIPDB 的公开数据。各数据源条款与署名要求:[docs/data-sources.md](docs/data-sources.md)。
+结果聚合并交叉比对来自 IPinfo、DB-IP、IP2Location、ip-api.com、MaxMind GeoLite2、Google DNS(DoH 反向 DNS)与 AbuseIPDB 的公开数据。各数据源条款与署名要求:[docs/data-sources.md](docs/data-sources.md)。
 
 ## 规范与 SDK
 

@@ -17,8 +17,9 @@ curl "https://ipaudit.dev/api/analyze?ip=8.8.8.8"
 ```json
 {
   "ip": "8.8.8.8",
-  "score": { "score": 90, "grade": "high", "signals": [ ... ] },
-  "confidence": { "score": 88, "grade": "high", "healthySources": 7, "totalSources": 8 },
+  "score": { "score": 95, "grade": "high",
+             "signals": [ { "key": "hosting", "verdict": "disputed", "hits": 1, "healthy": 7, "deduct": 5 }, ... ] },
+  "confidence": { "score": 100, "grade": "high", "healthySources": 7, "totalSources": 7 },
   "perSource": [ ... ]
 }
 ```
@@ -68,9 +69,13 @@ See [docs/rate-limits.md](docs/rate-limits.md) for client best practices (backof
 
 More snippets in [examples/github-badge.md](examples/github-badge.md).
 
+## How scoring works
+
+Scoring is **consensus-weighted**: a risk signal claimed by every contributing source deducts in full; a signal claimed by only a minority deducts **half, capped at 20 points**, and is reported as `verdict: "disputed"` with the vote counts (`hits`/`healthy`). One noisy feed can never zero an IP — see [docs/scoring.md](docs/scoring.md) for the full rules.
+
 ## Data sources & attribution
 
-Results aggregate (and cross-check) public data from ipwho.is, IPinfo, DB-IP, IP2Location, ip-api.com, MaxMind GeoLite2, Google DNS (DoH reverse DNS) and AbuseIPDB. Source terms and attribution requirements: [docs/data-sources.md](docs/data-sources.md).
+Results aggregate (and cross-check) public data from IPinfo, DB-IP, IP2Location, ip-api.com, MaxMind GeoLite2, Google DNS (DoH reverse DNS) and AbuseIPDB. Source terms and attribution requirements: [docs/data-sources.md](docs/data-sources.md).
 
 ## Spec & SDKs
 

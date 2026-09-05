@@ -79,21 +79,17 @@ paths:
                     threatInfo: { score: 0 }
                     raw: { proxy: false, hosting: true, bot: false, geoAnomaly: false, contradictions: 0 }
                     score:
-                      score: 90
+                      score: 95
                       grade: high
                       signals:
                         - { key: vpn, verdict: consistent }
-                        - { key: hosting, verdict: conflict }
-                    confidence: { score: 88, grade: high, healthySources: 7, totalSources: 8, contradictions: 0 }
+                        - key: hosting
+                          verdict: disputed
+                          hits: 1
+                          healthy: 7
+                          deduct: 5
+                    confidence: { score: 100, grade: high, healthySources: 7, totalSources: 7, contradictions: 0 }
                     perSource:
-                      - id: ipwho.is
-                        name: ipwho.is
-                        contributed: false
-                        status: error
-                        errorDetail: HTTP 429
-                        rateLimited: true
-                        signals: {}
-                        conflict: { country: false, asn: false }
                       - id: ipinfo
                         name: IPinfo
                         contributed: true
@@ -101,6 +97,13 @@ paths:
                         country: United States
                         asn: '15169'
                         signals: {}
+                        conflict: { country: false, asn: false }
+                      - id: abuseipdb
+                        name: AbuseIPDB
+                        contributed: true
+                        status: ok
+                        threatScore: 0
+                        signals: { vpn: false, hosting: false }
                         conflict: { country: false, asn: false }
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -228,7 +231,7 @@ components:
           description: Present on 429 responses — the daily audit limit.
     Grade:
       type: string
-      description: Trust band. `high` ≥ 80, `medium` ≥ 60, `low` ≥ 40, `suspicious` below.
+      description: Trust band. `high` ≥ 70, `medium` ≥ 40, `low` ≥ 20, `suspicious` below.
       enum: [high, medium, low, suspicious]
     SignalKey:
       type: string
@@ -346,6 +349,10 @@ components:
               type: integer
               minimum: 0
               maximum: 100
+              description: >-
+                Starts at 100; consensus-weighted deductions per detected
+                signal (full when unanimous, half capped at 20 when disputed).
+                See docs/scoring.md.
             grade:
               $ref: '#/components/schemas/Grade'
             signals:
@@ -357,7 +364,20 @@ components:
                     $ref: '#/components/schemas/SignalKey'
                   verdict:
                     type: string
-                    enum: [consistent, conflict, unknown]
+                    description: >-
+                      `consistent` = unanimous among contributing sources (no
+                      source claims it, or every source claims it); `disputed`
+                      = only a minority of sources claim it (deducts half).
+                    enum: [consistent, disputed]
+                  hits:
+                    type: integer
+                    description: Sources claiming the signal (present when detected).
+                  healthy:
+                    type: integer
+                    description: Sources that contributed to the audit.
+                  deduct:
+                    type: integer
+                    description: Points actually deducted (present when detected).
         confidence:
           type: object
           description: How much to trust this audit itself.
