@@ -75,7 +75,7 @@ curl "https://ipaudit.dev/api/analyze?ip=8.8.8.8"
 
 ## 数据源与署名
 
-结果聚合并交叉比对来自 IPinfo、DB-IP、IP2Location、ip-api.com、MaxMind GeoLite2、Google DNS(DoH 反向 DNS)与 AbuseIPDB 的公开数据。各数据源条款与署名要求:[docs/data-sources.md](docs/data-sources.md)。
+结果聚合并交叉比对来自 IPinfo、DB-IP、IP2Location、ip-api.com、MaxMind GeoLite2、Google DNS(DoH 反向 DNS)、AbuseIPDB,以及作为第二威胁投票的 FireHOL level-1 黑名单。各数据源条款与署名要求:[docs/data-sources.md](docs/data-sources.md)。
 
 ## 规范与 SDK
 

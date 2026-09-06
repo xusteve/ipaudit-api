@@ -75,7 +75,7 @@ Scoring is **consensus-weighted**: a risk signal claimed by every contributing s
 
 ## Data sources & attribution
 
-Results aggregate (and cross-check) public data from IPinfo, DB-IP, IP2Location, ip-api.com, MaxMind GeoLite2, Google DNS (DoH reverse DNS) and AbuseIPDB. Source terms and attribution requirements: [docs/data-sources.md](docs/data-sources.md).
+Results aggregate (and cross-check) public data from IPinfo, DB-IP, IP2Location, ip-api.com, MaxMind GeoLite2, Google DNS (DoH reverse DNS), AbuseIPDB, and the FireHOL level-1 blocklist (second threat vote). Source terms and attribution requirements: [docs/data-sources.md](docs/data-sources.md).
 
 ## Spec & SDKs
 

@@ -9,7 +9,7 @@ The trust score starts at **100** and deducts for detected risk signals. Two ide
 
 | Signal | Deduction |
 |---|---|
-| `threat` | −35 |
+| `threat` | −35 (reported by AbuseIPDB **and** the FireHOL level-1 blocklist — two independent threat sources; both claiming = unanimous full weight, either alone = disputed) |
 | `bot` | −30 |
 | `tor` | −25 |
 | `vpn` | −20 |

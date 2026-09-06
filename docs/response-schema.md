@@ -16,7 +16,7 @@ Field-by-field reference. The example below is a real, current response for `8.8
 | `asn` | string | Autonomous System Number announcing the address, e.g. `"15169"`. |
 | `asnOrg` | string | Organization operating that AS, e.g. `"Google LLC"`. |
 | `latitude` / `longitude` | number | Approximate location — city-level at best, **never** a street address. |
-| `sources` | string[] | IDs of the sources consulted: `ipinfo`, `db-ip`, `ip2location`, `ip-api`, `maxmind`, `doh` (reverse DNS), `abuseipdb` — seven in total. |
+| `sources` | string[] | IDs of the sources consulted: `ipinfo`, `db-ip`, `ip2location`, `ip-api`, `maxmind`, `doh` (reverse DNS), `abuseipdb` — seven in total (plus the FireHOL level-1 blocklist consulted locally as a second threat vote). |
 | `reverseDns` | string \| null | PTR hostname, e.g. `dns.google`. |
 | `threatInfo` | object | `{ "score": 0..100 }` — AbuseIPDB abuse-confidence score (higher = more abuse reports). |
 
